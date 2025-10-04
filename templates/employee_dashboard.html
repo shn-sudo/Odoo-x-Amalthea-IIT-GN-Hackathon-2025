@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Dashboard - Peaky Blinders Expense{% endblock %}
+
+{% block content %}
+<h2>My Expenses</h2>
+{% if expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th> <!-- Assuming company currency is passed or fetched -->
+                <th>Original Currency</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.id }}</td>
+                <td>{{ "%.2f"|format(expense.converted_amount or expense.amount) }}</td>
+                <td>{{ expense.original_currency_code }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td style="color:
+                    {% if expense.status == 'approved' %}#4CAF50; /* Green */
+                    {% elif expense.status == 'rejected' %}#F44336; /* Red */
+                    {% else %}#FFC107; /* Amber */ %}
+                ">{{ expense.status|title }}</td>
+                <td>{{ expense.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No expenses submitted yet.</p>
+{% endif %}
+
+<h3>Submit New Expense</h3>
+<form id="submitExpenseForm">
+    <div class="form-group">
+        <label for="amount">Amount:</label>
+        <input type="number" step="0.01" id="amount" name="amount" required>
+    </div>
+    <div class="form-group">
+        <label for="currency">Currency:</label>
+        <select id="currency" name="currency" required>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <!-- Add more options as needed -->
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="category">Category:</label>
+        <select id="category" name="category" required>
+            <option value="Travel">Travel</option>
+            <option value="Meals">Meals</option>
+            <option value="Office Supplies">Office Supplies</option>
+            <option value="Other">Other</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" required>
+    </div>
+    <button type="submit" class="btn">Submit Expense</button>
+</form>
+
+<script>
+    // Simple script to handle form submission via fetch API
+    document.getElementById('submitExpenseForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent default form submission
+
+        const formData = new FormData(e.target);
+        const expenseData = Object.fromEntries(formData);
+
+        try {
+            const response = await fetch('/api/expenses/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // If using JWT, include it here: 'Authorization': `Bearer ${getJwtToken()}`
+                    // For session-based auth in Flask, cookies usually handle it automatically if same origin
+                },
+                body: JSON.stringify(expenseData)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert('Expense submitted successfully!');
+                e.target.reset(); // Reset the form
+                // Optionally, reload the page or update the table dynamically
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error submitting expense:', error);
+            alert('An error occurred while submitting the expense.');
+        }
+    });
+</script>
+
+{% endblock %}
