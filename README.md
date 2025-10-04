@@ -2,7 +2,7 @@
 
 > **A scalable, clean, and modular solution for automating company expense reimbursement processes.**
 
-**Note:** This project is being developed as part of a hackathon. While AI assistance is being used as a guide and brainstorming partner, the core goal is to learn, build, and understand the concepts independently. Every effort will be made to research, code, and debug using personal understanding and external resources, with AI input primarily used for structuring ideas and overcoming specific hurdles.
+**Note:** This project is being developed as part of a hackathon. While AI assistance (like this conversation) is being used as a guide and brainstorming partner, the core goal is to learn, build, and understand the concepts independently. Every effort will be made to research, code, and debug using personal understanding and external resources, with AI input primarily used for structuring ideas and overcoming specific hurdles.
 
 ---
 
@@ -25,35 +25,45 @@ Companies struggle with manual, error-prone, and opaque expense reimbursement pr
 ### **Key Features & User Roles**
 
 #### **1. Authentication & User Management (Admin)**
-- On first signup, an Admin user and a Company record are auto-created.
-- The Company’s base currency is set based on the selected country.
-- Admin can:
-  - Create and manage Employees & Managers.
-  - Assign and change user roles.
-  - Define manager-employee relationships.
-  - Configure complex approval rules.
+- **On first signup/login:** A new `Company` record is auto-created. The base currency for the company is set based on the selected country's currency (using the `restcountries.com` API).
+- **Admin can:**
+  - Create `Employee` and `Manager` users.
+  - Assign and change user roles (`Employee`, `Manager`).
+  - Define manager-employee relationships (specify which manager is responsible for which employee).
+  - Configure complex approval rules (see Conditional Approval Flow section).
 
 #### **2. Expense Submission (Employee)**
-- Submit expense claims with:
-  - Amount (in any currency).
-  - Category, Description, Date.
-  - Option to upload/scan a receipt (OCR integration).
-- View personal expense history (Approved, Rejected, Pending).
+- **Employee can:**
+  - Submit expense claims with:
+    - Amount (in any currency).
+    - Category, Description, Date.
+    - Option to upload/scan a receipt (OCR integration planned).
+  - View their personal expense history (Approved, Rejected, Pending status).
 
 #### **3. Approval Workflow (Manager/Admin)**
-- Expenses follow a defined sequence of approvers.
-- Example Sequence: `Manager → Finance → Director`.
-- Each approver receives a request only after the previous one acts.
-- Managers can:
-  - View pending approvals.
-  - Approve/Reject with comments.
-  - See amounts converted to the company’s base currency in real-time.
+- **Key Rule:** An expense is first sent to the employee's designated manager *only if* the manager is flagged as an "approver" (`IS MANAGER APPROVER` field).
+- **Sequential Approval:** When multiple approvers are assigned via the `Approval Rule`, the admin defines the *sequence* of approval.
+  - Example: `Step 1 → Manager` -> `Step 2 → Finance` -> `Step 3 → Director`.
+- **Flow Logic:** An expense moves to the *next* approver in the sequence only after the *current* approver approves or rejects it. The next approver receives an approval request in their account.
+- **Manager can:**
+  - View expenses waiting for their approval.
+  - Approve or Reject an expense, optionally adding comments.
+  - See the expense amount converted to the company's default currency in real-time (using the `exchangerate-api.com`).
 
-#### **4. Conditional Approval Rules (Admin)**
-- **Percentage Rule**: e.g., "60% of approvers must approve."
-- **Specific Approver Rule**: e.g., "If CFO approves, auto-approve."
-- **Hybrid Rule**: Combine both (e.g., "60% OR CFO approves").
-- Rules can be combined with sequential flows for maximum flexibility.
+#### **4. Conditional Approval Flow (Admin Defined)**
+- **Approval Rules** support:
+  - **Percentage rule:** e.g., "If 60% of the defined approvers approve, the expense is approved."
+  - **Specific Approver rule:** e.g., "If the CFO approves, the expense is auto-approved, bypassing others."
+  - **Hybrid rule:** Combines both (e.g., "60% OR CFO approves").
+- **Combination:** These rules can be combined with the sequential approval flow defined earlier.
+
+#### **5. Role Permissions**
+
+| Role      | Permissions                                                                                      |
+| :-------- | :----------------------------------------------------------------------------------------------- |
+| **Admin** | Create company (auto on signup), manage users, set roles, configure approval rules, view all expenses, override approvals. |
+| **Manager** | Approve/reject expenses (amount visible in company's default currency), view team expenses, escalate as per rules. |
+| **Employee** | Submit expenses, view their own expenses, check approval status.                               |
 
 ---
 
@@ -112,17 +122,6 @@ This project prioritizes **scalability**, **clean code**, and **robust architect
 
 ---
 
-### **Development Approach**
-
-1.  **Start Small, Think Big**: Begin with core functionality (signup, login, submit expense), then add complexity (approval rules, OCR).
-2.  **Modular Architecture**: Separate concerns (frontend, backend, database, services).
-3.  **Test as You Go**: Write unit tests for critical functions (validation, currency conversion).
-4.  **Document Everything**: Comment your code, update README.md regularly.
-5.  **Collaborate & Innovate**: If working in a team, divide tasks wisely. If solo, focus on depth over breadth.
-6.  **Enjoy the Process**: Hackathons are about learning, creativity, and having fun!
-
----
-
 ### **Tools & Technologies (Suggested)**
 
 - **Backend**: Node.js + Express / Python + Flask
@@ -145,5 +144,7 @@ This project prioritizes **scalability**, **clean code**, and **robust architect
 
 ---
 
-### ** To End **
-You’ve got this. Remember, the goal isn’t to build the most complex system, but to build a **well-thought-out, clean, and functional** one that demonstrates your **logical thinking, technical skills, and passion for solving real-world problems**.
+### **To End**
+
+Remember, the goal isn’t to build the most complex system, but to build a **well-thought-out, clean, and functional** one that demonstrates your **logical thinking, technical skills, and passion for solving real-world problems**.
+
