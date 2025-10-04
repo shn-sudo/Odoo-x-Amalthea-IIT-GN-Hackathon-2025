@@ -9,7 +9,7 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th> <!-- Assuming company currency is passed or fetched -->
+                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th>
                 <th>Original Currency</th>
                 <th>Category</th>
                 <th>Description</th>
@@ -27,12 +27,6 @@
                 <td>{{ expense.category }}</td>
                 <td>{{ expense.description }}</td>
                 <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-<!--                 <td style="color:
-                    {% if expense.status == 'approved' %}#4CAF50; /* Green */
-                    {% elif expense.status == 'rejected' %}#F44336; /* Red */
-                    {% else %}#FFC107; /* Amber */ %}
-                ">{{ expense.status|title }}</td> -->
-
                 <td style="color: {% if expense.status == 'approved' %}#4CAF50;{% elif expense.status == 'rejected' %}#F44336;{% else %}#FFC107;{% endif %}">{{ expense.status|title }}</td>
                 <td>{{ expense.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
             </tr>
