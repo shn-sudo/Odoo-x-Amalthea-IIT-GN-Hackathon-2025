@@ -144,28 +144,28 @@ def signup():
 		return jsonify({'message': 'An error occurred while creating the user or company.'}), 500
 
 
-# # Route for user login
-# @app.route('/api/auth/login', methods=['POST'])
-# def login():
-# 	data = request.get_json()
-# 	username = data.get('username')
-# 	password = data.get('password')
+# Route for user login
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+	data = request.get_json()
+	username = data.get('username')
+	password = data.get('password')
 
-# 	# Find the user by username
-# 	user = User.query.filter_by(username=username).first()
+	# Find the user by username
+	user = User.query.filter_by(username=username).first()
 
-# 	# Check if user exists and password is correct
-# 	if user and user.check_password(password):
-# 		# Generate a JWT token for the authenticated user
-# 		access_token = create_access_token(identity=user.id)
-# 		return jsonify({
-# 			'message': 'Login successful',
-# 			'access_token': access_token,
-# 			'user_id': user.id,
-# 			'role': user.role
-# 		}), 200
-# 	else:
-# 		return jsonify({'message': 'Invalid username or password'}), 401
+	# Check if user exists and password is correct
+	if user and user.check_password(password):
+		# Generate a JWT token for the authenticated user
+		access_token = create_access_token(identity=user.id)
+		return jsonify({
+			'message': 'Login successful',
+			'access_token': access_token,
+			'user_id': user.id,
+			'role': user.role
+		}), 200
+	else:
+		return jsonify({'message': 'Invalid username or password'}), 401
 
 
 # # A simple protected route to test authentication
