@@ -514,6 +514,73 @@ def reject_expense(expense_id):
         print(f"Database error during rejection: {e}") # Log error for debugging
         return jsonify({'message': 'An error occurred while processing the rejection.'}), 500
 
+# --- Frontend Routes (Flask Templates) ---
+# These routes render the HTML pages for the frontend
+
+@app.route('/')
+def index():
+    # If user is logged in, redirect to their dashboard
+    if 'user_id' in session:
+        if session['role'] == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        elif session['role'] == 'manager':
+            return redirect(url_for('manager_dashboard'))
+        else: # employee
+            return redirect(url_for('employee_dashboard'))
+    # If not logged in, show the login page
+    return render_template('login.html')
+
+@app.route('/login')
+def login_page():
+    # Show the login page
+    return render_template('login.html')
+
+@app.route('/signup')
+def signup_page():
+    # Show the signup page
+    # Only allow signup if no company exists (first admin signup)
+    if Company.query.first():
+        return redirect(url_for('login_page'))
+    return render_template('signup.html')
+
+@app.route('/employee')
+def employee_dashboard():
+    # Check if user is logged in and is an employee
+    if 'user_id' not in session or session['role'] != 'employee':
+        return redirect(url_for('index'))
+    # Fetch user's expenses
+    user_expenses = Expense.query.filter_by(submitted_by_id=session['user_id']).order_by(Expense.submitted_at.desc()).all()
+    return render_template('employee_dashboard.html', expenses=user_expenses)
+
+@app.route('/manager')
+def manager_dashboard():
+    # Check if user is logged in and is a manager
+    if 'user_id' not in session or session['role'] != 'manager':
+        return redirect(url_for('index'))
+    # Fetch pending expenses assigned to the current manager
+    pending_expenses = Expense.query.filter_by(current_approver_id=session['user_id'], status='pending').all()
+    # Fetch all expenses submitted by subordinates (optional view)
+    subordinate_ids = [u.id for u in User.query.filter_by(manager_id=session['user_id']).all()]
+    team_expenses = Expense.query.filter(Expense.submitted_by_id.in_(subordinate_ids)).all()
+    return render_template('manager_dashboard.html', pending_expenses=pending_expenses, team_expenses=team_expenses)
+
+@app.route('/admin')
+def admin_dashboard():
+    # Check if user is logged in and is an admin
+    if 'user_id' not in session or session['role'] != 'admin':
+        return redirect(url_for('index'))
+    # Fetch all users in the company
+    company_users = User.query.filter_by(company_id=session['company_id']).all()
+    # Fetch all expenses in the company
+    all_expenses = Expense.query.all()
+    return render_template('admin_dashboard.html', users=company_users, expenses=all_expenses)
+
+@app.route('/logout')
+def logout():
+    # Clear the user's session
+    session.clear()
+    # Redirect to the login page
+    return redirect(url_for('index'))
 
 # --- Main Application Runner ---
 # This block ensures the app only runs if this script is executed directly
