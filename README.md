@@ -1,150 +1,87 @@
-## **Expense Management System - Hackathon Project**
+# Expense Management System
 
-> **A scalable, clean, and modular solution for automating company expense reimbursement processes.**
-
-**Note:** This project is being developed as part of a hackathon. While AI assistance (like this conversation) is being used as a guide and brainstorming partner, the core goal is to learn, build, and understand the concepts independently. Every effort will be made to research, code, and debug using personal understanding and external resources, with AI input primarily used for structuring ideas and overcoming specific hurdles.
+This project is a backend API for handling company expense reimbursements, built during the Odoo x Amalthea Hackathon 2025. It focuses on user management, expense submission, and a multi-step approval workflow.
 
 ---
 
-### **Project Vision**
+## Features
 
-To build a robust, user-friendly, and scalable expense management system that eliminates the pain points of manual reimbursement processes. The system will provide transparency, enforce configurable approval workflows, and offer features like OCR for receipts, real-time currency conversion, and detailed audit trails — all while being built from scratch with minimal external dependencies.
+**Current (Backend API):**
+*   **User Management:**
+    *   Initial company and admin signup (first user only).
+    *   Login with JWT tokens.
+    *   Role-based access (Employee, Manager, Admin).
+*   **Expense Handling:**
+    *   Employees can submit expenses (amount, currency, category, date, description).
+    *   Employees can view their submitted expenses.
+    *   Managers can view expenses assigned to them for approval.
+    *   Managers can approve or reject expenses.
+*   **Other:**
+    *   Currency conversion for submitted expenses using an external API.
+    *   Basic approval workflow assigns expenses to the employee's manager or an admin.
+    *   SQLite database with SQLAlchemy ORM.
 
----
-
-### **Core Problem Statement**
-
-Companies struggle with manual, error-prone, and opaque expense reimbursement processes. My solution aims to:
-- Automate and streamline the submission and approval workflow.
-- Provide flexible, rule-based multi-level approvals.
-- Ensure data integrity and security through robust design.
-- Offer a clean, intuitive UI for all user roles (Admin, Manager, Employee).
-
----
-
-### **Key Features & User Roles**
-
-#### **1. Authentication & User Management (Admin)**
-- **On first signup/login:** A new `Company` record is auto-created. The base currency for the company is set based on the selected country's currency (using the `restcountries.com` API).
-- **Admin can:**
-  - Create `Employee` and `Manager` users.
-  - Assign and change user roles (`Employee`, `Manager`).
-  - Define manager-employee relationships (specify which manager is responsible for which employee).
-  - Configure complex approval rules (see Conditional Approval Flow section).
-
-#### **2. Expense Submission (Employee)**
-- **Employee can:**
-  - Submit expense claims with:
-    - Amount (in any currency).
-    - Category, Description, Date.
-    - Option to upload/scan a receipt (OCR integration planned).
-  - View their personal expense history (Approved, Rejected, Pending status).
-
-#### **3. Approval Workflow (Manager/Admin)**
-- **Key Rule:** An expense is first sent to the employee's designated manager *only if* the manager is flagged as an "approver" (`IS MANAGER APPROVER` field).
-- **Sequential Approval:** When multiple approvers are assigned via the `Approval Rule`, the admin defines the *sequence* of approval.
-  - Example: `Step 1 → Manager` -> `Step 2 → Finance` -> `Step 3 → Director`.
-- **Flow Logic:** An expense moves to the *next* approver in the sequence only after the *current* approver approves or rejects it. The next approver receives an approval request in their account.
-- **Manager can:**
-  - View expenses waiting for their approval.
-  - Approve or Reject an expense, optionally adding comments.
-  - See the expense amount converted to the company's default currency in real-time (using the `exchangerate-api.com`).
-
-#### **4. Conditional Approval Flow (Admin Defined)**
-- **Approval Rules** support:
-  - **Percentage rule:** e.g., "If 60% of the defined approvers approve, the expense is approved."
-  - **Specific Approver rule:** e.g., "If the CFO approves, the expense is auto-approved, bypassing others."
-  - **Hybrid rule:** Combines both (e.g., "60% OR CFO approves").
-- **Combination:** These rules can be combined with the sequential approval flow defined earlier.
-
-#### **5. Role Permissions**
-
-| Role      | Permissions                                                                                      |
-| :-------- | :----------------------------------------------------------------------------------------------- |
-| **Admin** | Create company (auto on signup), manage users, set roles, configure approval rules, view all expenses, override approvals. |
-| **Manager** | Approve/reject expenses (amount visible in company's default currency), view team expenses, escalate as per rules. |
-| **Employee** | Submit expenses, view their own expenses, check approval status.                               |
+**Planned (Frontend & More API):**
+*   Frontend dashboards with a "Peaky Blinders" aesthetic.
+*   Admin panel for managing users and defining approval rules (multi-step, conditional).
+*   Receipt upload and potential OCR processing (mentioned as an extra feature in the problem statement, not core).
 
 ---
 
-### **Technical Requirements & Design Philosophy**
+## Tech Stack
 
-This project prioritizes **scalability**, **clean code**, and **robust architecture** over speed of development. We aim to impress reviewers with our technical depth and attention to detail.
-
-#### **Database Design (Critical!)**
-- Use **MySQL** or **PostgreSQL** (local setup preferred).
-- Avoid BaaS platforms (Firebase, Supabase, MongoDB Atlas).
-- Design normalized, relational tables for Users, Companies, Expenses, Approvals, and Rules.
-- Ensure referential integrity and efficient indexing.
-
-#### **Backend API**
-- Build a RESTful API from scratch (Node.js/Express, Python/Flask, or similar).
-- Implement proper input validation and graceful error handling.
-- Use environment variables for sensitive data (API keys, DB credentials).
-
-#### **Frontend UI**
-- Clean, responsive, and intuitive design.
-- Intuitive navigation for all user roles.
-- Interactive elements (e.g., dynamic dropdowns, status indicators).
-- Mockups available: [Excalidraw Link](https://link.excalidraw.com/l/65VNwvy7c4X/4WSLZDTrhkA)
-
-#### **Currency Conversion & OCR**
-- Use `https://restcountries.com/v3.1/all?fields=name,currencies` for country/currency data.
-- Use `https://api.exchangerate-api.com/v4/latest/{BASE_CURRENCY}` for real-time conversion.
-- Implement basic OCR (Tesseract.js or similar) for receipt scanning.
-
-#### **Error Handling & Validation**
-- Validate all user inputs (email, password, amounts, dates).
-- Provide clear, user-friendly error messages.
-- Log errors for debugging purposes.
-
-#### **Version Control & Collaboration**
-- Use **Git** for version control.
-- Commit frequently with descriptive messages.
-- Branching strategy: `main`, `develop`, feature branches.
+*   **Backend:** Python, Flask
+*   **Database:** SQLite, SQLAlchemy ORM
+*   **Authentication:** JWT, Bcrypt
+*   **API Requests:** Requests
+*   **Frontend (Planned):** HTML, CSS, JavaScript
 
 ---
 
-### **Evaluation Criteria (What the Judges Care About)**
+## Setup
 
-| Category             | What to Focus On                                                                 |
-|----------------------|------------------------------------------------------------------------------------|
-| **Coding Standard**  | Consistent style, meaningful variable names, proper indentation.                  |
-| **Logic**            | Clear, efficient algorithms; handle edge cases.                                    |
-| **Modularity**       | Break code into reusable, independent modules (e.g., auth, expense, approval).     |
-| **Frontend Design**  | Clean, responsive UI; intuitive navigation; accessibility.                         |
-| **Performance**      | Optimize queries, minimize API calls, use caching where appropriate.               |
-| **Scalability**      | Design for future growth (e.g., multiple companies, thousands of users).           |
-| **Security**         | Secure authentication, protect sensitive data, sanitize inputs.                    |
-| **Usability**        | Easy for non-technical users; clear feedback; helpful tooltips.                    |
-| **Debugging Skills** | Include logging, error handling, and unit tests where possible.                    |
-| **Database Design**  | **MOST IMPORTANT!** Well-structured schema, relationships, normalization.          |
+1.  Clone the repo: `git clone <YOUR_REPOSITORY_URL>`
+2.  Navigate to the project directory: `cd <YOUR_REPOSITORY_NAME>`
+3.  Create a virtual environment: `python -m venv venv`
+4.  Activate the virtual environment:
+    *   On Windows: `venv\Scripts\activate`
+    *   On macOS/Linux: `source venv/bin/activate`
+5.  Install dependencies: `pip install -r requirements.txt`
+6.  Run the app: `python app.py`
+7.  The API should be running on `http://127.0.0.1:5000/`.
 
 ---
 
-### **Tools & Technologies (Suggested)**
+## API Endpoints (Current)
 
-- **Backend**: Node.js + Express / Python + Flask
-- **Frontend**: React / Vue.js / Svelte (or plain HTML/CSS/JS if time-constrained)
-- **Database**: PostgreSQL (preferred) or MySQL
-- **OCR**: Tesseract.js (JavaScript) or pytesseract (Python)
-- **Currency API**: `exchangerate-api.com`
-- **Country Data**: `restcountries.com`
-- **UI Mockup**: Excalidraw (already provided)
-- **Version Control**: Git + GitHub
-
----
-
-### **Final Notes**
-
-- **Avoid Copy-Paste**: Understand every line of code you write. Know *why* you’re using a library or pattern.
-- **Real-Time Data**: Use websockets or polling for live updates (e.g., approval status).
-- **AI/Blockchain**: Only include if they genuinely add value (e.g., AI for receipt categorization).
-- **Prototype First**: Use static JSON for initial UI mockups, but replace with real DB calls before final submission.
+*   `POST /api/auth/signup`: Create the first admin user and company.
+*   `POST /api/auth/login`: User login.
+*   `GET /api/protected`: Example protected route.
+*   `GET /api/expenses/my`: Get expenses submitted by the logged-in user.
+*   `POST /api/expenses/submit`: Submit a new expense.
+*   `GET /api/expenses/pending`: Get expenses pending approval for the logged-in manager.
+*   `POST /api/expenses/<int:expense_id>/approve`: Approve an expense.
+*   `POST /api/expenses/<int:expense_id>/reject`: Reject an expense.
 
 ---
 
-### **To End**
+## Database Schema
 
-Remember, the goal isn’t to build the most complex system, but to build a **well-thought-out, clean, and functional** one that demonstrates your **logical thinking, technical skills, and passion for solving real-world problems**.
+Based on the SQLAlchemy models in `app.py`.
 
+*   `Company`: id, name, base_currency_code, created_at
+*   `User`: id, username (unique), email (unique), password_hash, role, company_id (FK), manager_id (self-FK), is_manager_approver, created_at
+*   `Expense`: id, amount, original_currency_code, converted_amount, category, description, date, receipt_image_path, status, submitted_by_id (FK), submitted_at, current_approver_id (FK)
+*   `Approval`: id, expense_id (FK), approver_id (FK), status, comment, approved_at
+*   `ApprovalRule`: id, name, company_id (FK), percentage_required, specific_approver_required_id (FK), is_hybrid_rule, rule_type, sequence_order
+
+---
+
+## Next Steps
+
+1.  Build the frontend interface.
+2.  Implement admin user/role management.
+3.  Implement full approval rule management.
+4.  Add more robust error handling.
+
+---
