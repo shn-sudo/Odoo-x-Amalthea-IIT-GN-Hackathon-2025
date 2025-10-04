@@ -63,6 +63,48 @@ class User(db.Model):
 # --- API Routes (Endpoints) ---
 
 # Route for user signup (handles initial company creation too)
+# @app.route('/api/auth/signup', methods=['POST'])
+# def signup():
+#     # Get the JSON data sent by the user
+#     data = request.get_json()
+#     username = data.get('username')
+#     email = data.get('email')
+#     password = data.get('password')
+#     company_name = data.get('company_name') # Required only for first signup
+#     country_name = data.get('country')      # Required only for first signup
+#     # --- Logic for First Signup ---
+#     # Check if any company already exists in the database
+#     first_company_exists = Company.query.first() is not None
+
+#     if first_company_exists:
+#         # If a company exists, this endpoint is not for creating the first one
+#         return jsonify({'message': 'A company already exists. This endpoint is for the initial signup only.'}), 400
+
+#     # Validate required fields for the first signup
+#     if not company_name or not country_name:
+#         return jsonify({'message': 'Company name and country are required for the first signup.'}), 400
+
+#     # --- Fetch Currency Code from External API ---
+#     try:
+#         country_api_url = f"https://restcountries.com/v3.1/name/{country_name}?fields=currencies"
+#         response = requests.get(country_api_url)
+#         if response.status_code == 200:
+#             country_data = response.json()
+#             if country_data:
+#                 # Get the first currency code from the API response
+#                 currency_dict = country_data[0].get('currencies', {})
+#                 if currency_dict:
+#                     base_currency_code = list(currency_dict.keys())[0] # e.g., 'USD'
+#                 else:
+#                     return jsonify({'message': 'Currency information not found for the country.'}), 400
+#             else:
+#                 return jsonify({'message': 'Country not found in the API.'}), 400
+#         else:
+#             return jsonify({'message': 'Failed to fetch currency data from API.'}), 500
+#     except Exception as e:
+#         print(f"Error fetching currency: {e}") # Log error for debugging
+#         return jsonify({'message': 'An error occurred while fetching currency data.'}), 500
+# Route for user signup (handles initial company creation too)
 @app.route('/api/auth/signup', methods=['POST'])
 def signup():
     # Get the JSON data sent by the user
@@ -129,6 +171,48 @@ def signup():
     try:
         # Commit the transaction to save changes to the database file
         db.session.commit()
+        # Generate a JWT token for the new admin user (if needed for API calls)
+        access_token = create_access_token(identity=str(new_user.id))
+        # For frontend session: SET THE SESSION HERE
+        session['user_id'] = new_user.id
+        session['username'] = new_user.username
+        session['role'] = new_user.role
+        session['company_id'] = new_company.id
+        return jsonify({
+            'message': 'Admin user and company created successfully!',
+            'access_token': access_token, # Include if needed for API
+            'user_id': new_user.id,
+            'company_id': new_company.id
+        }), 201
+    except Exception as e:
+        # If something goes wrong, undo the changes made in this session
+        db.session.rollback()
+        print(f"Database error during signup: {e}") # Log error for debugging
+        return jsonify({'message': 'An error occurred while creating the user or company.'}), 500
+    # --- Create Company and Admin User ---
+    # Hash the user's password
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    # Create the new Company record
+    new_company = Company(name=company_name, base_currency_code=base_currency_code)
+
+    # Create the new Admin User record
+    new_user = User(
+        username=username,
+        email=email,
+        role='admin', # First user is always admin
+        company=new_company # Associate user with the new company
+    )
+    new_user.set_password(password) # Use the method to hash and set the password
+
+    # Add both records to the database session
+    db.session.add(new_company)
+    # The user is automatically added because of the relationship and cascade="all, delete-orphan"
+    # Or you can explicitly add it: db.session.add(new_user)
+
+    try:
+        # Commit the transaction to save changes to the database file
+        db.session.commit()
         # Generate a JWT token for the new admin user
         access_token = create_access_token(identity=str(new_user.id))
         return jsonify({
@@ -145,6 +229,29 @@ def signup():
 
 
 # Route for user login
+# @app.route('/api/auth/login', methods=['POST'])
+# def login():
+#     data = request.get_json()
+#     username = data.get('username')
+#     password = data.get('password')
+
+#     # Find the user by username
+#     user = User.query.filter_by(username=username).first()
+
+#     # Check if user exists and password is correct
+#     if user and user.check_password(password):
+#         # Generate a JWT token for the authenticated user
+#         access_token = create_access_token(identity=str(user.id))
+#         return jsonify({
+#             'message': 'Login successful',
+#             'access_token': access_token,
+#             'user_id': user.id,
+#             'role': user.role
+#         }), 200
+#     else:
+#         return jsonify({'message': 'Invalid username or password'}), 401
+
+# Route for user login
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -156,17 +263,21 @@ def login():
 
     # Check if user exists and password is correct
     if user and user.check_password(password):
-        # Generate a JWT token for the authenticated user
+        # Generate a JWT token for the authenticated user (if needed for API calls)
         access_token = create_access_token(identity=str(user.id))
+        # For frontend session: SET THE SESSION HERE
+        session['user_id'] = user.id
+        session['username'] = user.username
+        session['role'] = user.role
+        session['company_id'] = user.company_id
         return jsonify({
             'message': 'Login successful',
-            'access_token': access_token,
+            'access_token': access_token, # Include if needed for API
             'user_id': user.id,
             'role': user.role
         }), 200
     else:
         return jsonify({'message': 'Invalid username or password'}), 401
-
 
 # A simple protected route to test authentication
 @app.route('/api/protected', methods=['GET'])
