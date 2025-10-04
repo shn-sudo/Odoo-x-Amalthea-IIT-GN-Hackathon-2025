@@ -376,6 +376,144 @@ def submit_expense():
         print(f"Database error during expense submission: {e}") # Log error for debugging
         return jsonify({'message': 'An error occurred while submitting the expense.'}), 500
 
+# Route for manager to view expenses pending their approval
+@app.route('/api/expenses/pending', methods=['GET'])
+@jwt_required() # Requires a valid JWT token
+def view_pending_expenses():
+    # Get the user ID from the JWT token (the manager's ID)
+    current_manager_id = int(get_jwt_identity()) # Convert string identity back to int
+
+    # Query the database for expenses where the current user is the current_approver_id and status is pending
+    pending_expenses = Expense.query.filter_by(current_approver_id=current_manager_id, status='pending').all()
+
+    # Prepare the response data
+    expenses_list = []
+    for expense in pending_expenses:
+        # Fetch the employee's name who submitted it for better context
+        submitted_by_user = User.query.get(expense.submitted_by_id)
+        expenses_list.append({
+            'id': expense.id,
+            'amount': expense.amount,
+            'original_currency_code': expense.original_currency_code,
+            'converted_amount': expense.converted_amount,
+            'category': expense.category,
+            'description': expense.description,
+            'date': expense.date.isoformat(), # Convert date object to string
+            'status': expense.status,
+            'submitted_by_id': expense.submitted_by_id, # Include the ID of the submitter
+            'submitted_by_username': submitted_by_user.username if submitted_by_user else 'Unknown', # Include the submitter's username
+            'submitted_at': expense.submitted_at.isoformat() # Convert datetime object to string
+        })
+
+    return jsonify({
+        'message': 'Pending expenses retrieved successfully',
+        'expenses': expenses_list
+    }), 200
+
+# Route for manager to approve an expense
+@app.route('/api/expenses/<int:expense_id>/approve', methods=['POST'])
+@jwt_required()
+def approve_expense(expense_id):
+    # Get the manager's ID from the JWT token
+    current_manager_id = int(get_jwt_identity())
+
+    # Get the expense from the database
+    expense = Expense.query.get_or_404(expense_id) # Returns 404 if expense doesn't exist
+
+    # Check if the current user is the *current* approver for this expense
+    if expense.current_approver_id != current_manager_id:
+        return jsonify({'message': 'You are not authorized to approve this expense.'}), 403
+
+    # Check if the expense is still pending
+    if expense.status != 'pending':
+        return jsonify({'message': f'Expense is already {expense.status}.'}), 400
+
+    # Get optional comment from request body
+    data = request.get_json()
+    comment = data.get('comment', '') # Default to empty string if no comment provided
+
+    # --- Create an Approval Record ---
+    new_approval = Approval(
+        expense_id=expense.id,
+        approver_id=current_manager_id,
+        status='approved',
+        comment=comment,
+        approved_at=datetime.utcnow()
+    )
+    db.session.add(new_approval)
+
+    # --- Update the Expense Status ---
+    # For now, let's assume approving finalizes the expense.
+    # In a full workflow, this is where you'd check rules and assign the next approver.
+    expense.status = 'approved'
+    expense.current_approver_id = None # No more approver needed after final approval
+
+    try:
+        # Commit the changes to the database
+        db.session.commit()
+        return jsonify({
+            'message': 'Expense approved successfully.',
+            'expense_id': expense.id,
+            'new_status': expense.status
+        }), 200
+    except Exception as e:
+        # If something goes wrong, undo the changes made in this session
+        db.session.rollback()
+        print(f"Database error during approval: {e}") # Log error for debugging
+        return jsonify({'message': 'An error occurred while processing the approval.'}), 500
+
+# Route for manager to reject an expense
+@app.route('/api/expenses/<int:expense_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_expense(expense_id):
+    # Get the manager's ID from the JWT token
+    current_manager_id = int(get_jwt_identity())
+
+    # Get the expense from the database
+    expense = Expense.query.get_or_404(expense_id) # Returns 404 if expense doesn't exist
+
+    # Check if the current user is the *current* approver for this expense
+    if expense.current_approver_id != current_manager_id:
+        return jsonify({'message': 'You are not authorized to reject this expense.'}), 403
+
+    # Check if the expense is still pending
+    if expense.status != 'pending':
+        return jsonify({'message': f'Expense is already {expense.status}.'}), 400
+
+    # Get comment from request body (required for rejection)
+    data = request.get_json()
+    comment = data.get('comment')
+    if not comment:
+        return jsonify({'message': 'A comment is required for rejection.'}), 400
+
+    # --- Create an Approval Record ---
+    new_approval = Approval(
+        expense_id=expense.id,
+        approver_id=current_manager_id,
+        status='rejected',
+        comment=comment,
+        approved_at=datetime.utcnow()
+    )
+    db.session.add(new_approval)
+
+    # --- Update the Expense Status ---
+    expense.status = 'rejected'
+    expense.current_approver_id = None # No more approver needed after rejection
+
+    try:
+        # Commit the changes to the database
+        db.session.commit()
+        return jsonify({
+            'message': 'Expense rejected successfully.',
+            'expense_id': expense.id,
+            'new_status': expense.status
+        }), 200
+    except Exception as e:
+        # If something goes wrong, undo the changes made in this session
+        db.session.rollback()
+        print(f"Database error during rejection: {e}") # Log error for debugging
+        return jsonify({'message': 'An error occurred while processing the rejection.'}), 500
+
 
 # --- Main Application Runner ---
 # This block ensures the app only runs if this script is executed directly
