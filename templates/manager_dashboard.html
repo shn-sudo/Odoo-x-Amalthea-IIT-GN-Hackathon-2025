@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Dashboard - Peaky Blinders Expense{% endblock %}
+
+{% block content %}
+<h2>Pending Approvals</h2>
+{% if pending_expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th>
+                <th>Original Currency</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Submitted At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in pending_expenses %}
+            <tr>
+                <td>{{ expense.id }}</td>
+                <td>{{ expense.submitted_by.username }}</td>
+                <td>{{ "%.2f"|format(expense.converted_amount or expense.amount) }}</td>
+                <td>{{ expense.original_currency_code }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ expense.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                    <form id="approveForm_{{ expense.id }}" style="display:inline;">
+                        <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                        <input type="text" name="comment" placeholder="Comment (optional)" style="width: 100px;">
+                        <button type="button" class="btn approve-btn" data-expense-id="{{ expense.id }}">Approve</button>
+                    </form>
+                    <form id="rejectForm_{{ expense.id }}" style="display:inline; margin-left: 5px;">
+                        <input type="hidden" name="expense_id" value="{{ expense.id }}">
+                        <input type="text" name="comment" placeholder="Comment (required for reject)" style="width: 100px;" required>
+                        <button type="button" class="btn reject-btn" data-expense-id="{{ expense.id }}">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No pending approvals.</p>
+{% endif %}
+
+<h2>Team Expenses</h2>
+{% if team_expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th>
+                <th>Original Currency</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in team_expenses %}
+            <tr>
+                <td>{{ expense.id }}</td>
+                <td>{{ expense.submitted_by.username }}</td>
+                <td>{{ "%.2f"|format(expense.converted_amount or expense.amount) }}</td>
+                <td>{{ expense.original_currency_code }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td style="color:
+                    {% if expense.status == 'approved' %}#4CAF50; /* Green */
+                    {% elif expense.status == 'rejected' %}#F44336; /* Red */
+                    {% else %}#FFC107; /* Amber */ %}
+                ">{{ expense.status|title }}</td>
+                <td>{{ expense.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No expenses from team members.</p>
+{% endif %}
+
+<script>
+    // Function to handle approve/reject actions
+    async function handleAction(expenseId, action, comment) {
+        try {
+            const response = await fetch(`/api/expenses/${expenseId}/${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ comment: comment })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert(`Expense ${action}ed successfully!`);
+                // Optionally, reload the page or update the table dynamically
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error(`Error ${action}ing expense:`, error);
+            alert(`An error occurred while ${action}ing the expense.`);
+        }
+    }
+
+    // Add event listeners to approve buttons
+    document.querySelectorAll('.approve-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const expenseId = e.target.getAttribute('data-expense-id');
+            // Get comment from the corresponding input field
+            const commentInput = e.target.previousElementSibling; // The input field before the button
+            const comment = commentInput.value.trim();
+            await handleAction(expenseId, 'approve', comment);
+        });
+    });
+
+    // Add event listeners to reject buttons
+    document.querySelectorAll('.reject-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const expenseId = e.target.getAttribute('data-expense-id');
+            // Get comment from the corresponding input field
+            const commentInput = e.target.previousElementSibling; // The input field before the button
+            const comment = commentInput.value.trim();
+            if (!comment) {
+                alert('A comment is required for rejection.');
+                return; // Stop if no comment
+            }
+            await handleAction(expenseId, 'reject', comment);
+        });
+    });
+</script>
+
+{% endblock %}
