@@ -130,7 +130,7 @@ def signup():
 		# Commit the transaction to save changes to the database file
 		db.session.commit()
 		# Generate a JWT token for the new admin user
-		access_token = create_access_token(identity=new_user.id)
+		access_token = create_access_token(identity=str(new_user.id))
 		return jsonify({
 			'message': 'Admin user and company created successfully!',
 			'access_token': access_token,
@@ -157,7 +157,7 @@ def login():
 	# Check if user exists and password is correct
 	if user and user.check_password(password):
 		# Generate a JWT token for the authenticated user
-		access_token = create_access_token(identity=user.id)
+		access_token = create_access_token(identity=str(user.id))
 		return jsonify({
 			'message': 'Login successful',
 			'access_token': access_token,
@@ -168,18 +168,138 @@ def login():
 		return jsonify({'message': 'Invalid username or password'}), 401
 
 
-# # A simple protected route to test authentication
-# @app.route('/api/protected', methods=['GET'])
-# @jwt_required()
-# def protected():
-# 	# Get the user ID from the JWT token
-# 	current_user_id = get_jwt_identity()
-# 	# Fetch the user object from the database
-# 	user = User.query.get(current_user_id)
-# 	if user:
-# 		return jsonify({'message': f'Hello, {user.username}!', 'role': user.role}), 200
-# 	else:
-# 		return jsonify({'message': 'User not found'}), 404
+# A simple protected route to test authentication
+@app.route('/api/protected', methods=['GET'])
+@jwt_required()
+def protected():
+	# Get the user ID from the JWT token
+	current_user_id = int(get_jwt_identity())
+	# Fetch the user object from the database
+	user = User.query.get(current_user_id)
+	if user:
+		return jsonify({'message': f'Hello, {user.username}!', 'role': user.role}), 200
+	else:
+		return jsonify({'message': 'User not found'}), 404
+
+# Define the Expense Model (add this *before* the routes if not already defined elsewhere)
+# We need to add this model to represent an expense in the database
+class Expense(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False) # Amount of the expense
+    original_currency_code = db.Column(db.String(3), nullable=False) # Currency the expense was submitted in
+    category = db.Column(db.String(100), nullable=False) # e.g., Travel, Food, Supplies
+    description = db.Column(db.Text, nullable=True) # Description of the expense
+    date = db.Column(db.Date, nullable=False) # Date of the expense
+    receipt_image_path = db.Column(db.String(255), nullable=True) # Path to uploaded receipt image (optional for now)
+    status = db.Column(db.String(20), nullable=False, default='pending') # 'pending', 'approved', 'rejected'
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Link to the employee who submitted
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow) # When it was submitted
+
+    # Relationship to the User who submitted it
+    submitted_by = db.relationship('User', backref='submitted_expenses')
+
+    # Relationship to Approval records (we'll define this model later)
+    approvals = db.relationship('Approval', backref='expense', lazy=True, cascade="all, delete-orphan")
+
+
+# Define the Approval Model (add this *before* the routes if not already defined elsewhere)
+# This model will track the approval status for each step in the workflow
+class Approval(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    expense_id = db.Column(db.Integer, db.ForeignKey('expense.id'), nullable=False)
+    approver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending') # 'pending', 'approved', 'rejected'
+    comment = db.Column(db.Text, nullable=True) # Optional comment from the approver
+    approved_at = db.Column(db.DateTime, nullable=True) # When it was approved/rejected
+
+    # Relationships
+    approver = db.relationship('User', backref='approvals_given')
+
+
+# Define the ApprovalRule Model (add this *before* the routes if not already defined elsewhere)
+# This model will store the rules defined by the admin for conditional approvals
+class ApprovalRule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False) # e.g., "Standard Rule", "High Value Rule"
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False) # Link to the company
+    percentage_required = db.Column(db.Integer, nullable=True) # e.g., 60 for 60%
+    specific_approver_required_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # e.g., CFO ID
+    is_hybrid_rule = db.Column(db.Boolean, default=False) # If True, combines percentage and specific approver
+    rule_type = db.Column(db.String(20), nullable=False) # 'percentage', 'specific', 'hybrid'
+    sequence_order = db.Column(db.Integer, nullable=False) # Order in the approval sequence
+
+    # Relationship to the company
+    company = db.relationship('Company', backref='approval_rules')
+
+    # Relationship to the specific required approver
+    specific_approver_required = db.relationship('User')
+
+
+# --- API Routes (Endpoints) ---
+
+# ... (Your existing signup and login routes go here) ...
+
+# Route for employee to submit an expense
+@app.route('/api/expenses/submit', methods=['POST'])
+@jwt_required() # Requires a valid JWT token
+def submit_expense():
+    # Get the user ID from the JWT token
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if not current_user:
+         return jsonify({'message': 'User not found'}), 404
+
+    # Get the JSON data sent by the user
+    data = request.get_json()
+    amount = data.get('amount')
+    original_currency_code = data.get('original_currency_code', 'USD') # Default to USD if not provided
+    category = data.get('category')
+    description = data.get('description', '') # Default to empty string
+    date_str = data.get('date') # Expecting date in YYYY-MM-DD format
+
+    # Validate required fields
+    if not amount or not category or not date_str:
+        return jsonify({'message': 'Amount, category, and date are required.'}), 400
+
+    # Convert date string to date object
+    try:
+        from datetime import datetime # Import inside function if not at top level
+        expense_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'message': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
+    # Optional: Validate amount is positive
+    if amount <= 0:
+        return jsonify({'message': 'Amount must be greater than zero.'}), 400
+
+    # Create the new Expense record
+    new_expense = Expense(
+        amount=amount,
+        original_currency_code=original_currency_code,
+        category=category,
+        description=description,
+        date=expense_date,
+        submitted_by_id=current_user.id, # Link the expense to the logged-in user
+        status='pending' # Initial status is pending
+    )
+
+    # Add the expense to the database session
+    db.session.add(new_expense)
+
+    try:
+        # Commit the transaction to save the expense
+        db.session.commit()
+        return jsonify({
+            'message': 'Expense submitted successfully!',
+            'expense_id': new_expense.id,
+            'status': new_expense.status
+        }), 201
+    except Exception as e:
+        # If something goes wrong, undo the changes made in this session
+        db.session.rollback()
+        print(f"Database error during expense submission: {e}") # Log error for debugging
+        return jsonify({'message': 'An error occurred while submitting the expense.'}), 500
 
 
 # --- Main Application Runner ---
