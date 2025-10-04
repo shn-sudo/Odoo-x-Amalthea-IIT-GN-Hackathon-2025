@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Peaky Blinders Expense{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Login</h2>
+    <!-- Display error message if passed -->
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn">Login</button>
+    </form>
+    <p style="text-align: center; margin-top: 15px;"><a href="{{ url_for('signup_page') }}" style="color: #d4af37;">Need an account? Sign Up</a></p>
+</div>
+
+<script>
+    // Simple script to handle login form submission via fetch API
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent default form submission
+
+        const formData = new FormData(e.target);
+        const loginData = Object.fromEntries(formData);
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(loginData)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                // Store user info in session (Flask handles this via backend redirect after API call)
+                // For now, redirect using JavaScript after successful API call
+                // A more Flask-native way would be to have the /api/auth/login route return a redirect URL
+                // or handle session setting in the backend route itself upon success.
+                // This JS redirect is a simplification.
+                window.location.href = '/'; // Redirect to home/dashboard
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error logging in:', error);
+            alert('An error occurred during login.');
+        }
+    });
+</script>
+
+{% endblock %}
