@@ -1,184 +1,203 @@
-# 🎩 Expense Management System 🎩
+# 🎩 Peaky Blinders Expense Management System 🎩
 
-> **A scalable, clean, and modular backend API solution for automating company expense reimbursement processes.**
+> **A backend API solution for automating company expense reimbursement processes, built during the Odoo x Amalthea, IIT GN Hackathon 2025.**
 
----
+## Table of Contents
+- [Project Vision](#project-vision)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Setup Instructions](#setup-instructions)
+- [Database Schema](#database-schema)
+- [API Endpoints](#api-endpoints)
+- [API Interaction Examples (using `curl`)](#api-interaction-examples-using-curl)
+- [Development Approach](#development-approach)
+- [Current Status (What Works & What Doesn't)](#current-status-what-works--what-doesnt)
+- [Next Steps](#next-steps)
+- [Built With](#built-with)
 
-## 📋 Table of Contents
-- [🎯 Project Vision](#-project-vision)
-- [✨ Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [⚡ Setup Instructions](#-setup-instructions)
-- [🔌 API Endpoints](#-api-endpoints)
-- [🗄️ Database Schema](#️-database-schema)
-- [🚀 Development Approach](#-development-approach)
-- [🔜 Next Steps](#-next-steps)
+## Project Vision
+This project aims to automate the company expense reimbursement process using a robust backend API. It implements a multi-step approval workflow based on company rules and user roles, ensuring transparency and efficiency. While the backend API is the primary focus and is largely functional, the frontend provides a thematic "Peaky Blinders" interface, currently tested primarily via API calls.
 
----
+## Features
+*   **User Authentication & Authorization (JWT):** Secure signup and login for employees, managers, and admins.
+*   **Role-Based Access:** Different permissions for employees (submit/view own expenses), managers (approve/reject), and admins (manage users, rules).
+*   **Expense Submission:** Employees can submit expenses with amount, currency, category, description, and date.
+*   **Expense Management:** Users can view their submitted expenses and their status (pending, approved, rejected).
+*   **Approval Workflow (Backend Logic):** Managers can approve or reject expenses assigned to them.
+*   **Currency Conversion:** (Conceptually integrated, relies on external API calls within the backend).
+*   **Database Integration:** Uses SQLAlchemy ORM for database operations.
 
-## 🎯 Project Vision
+## Tech Stack
+*   **Backend:** Python, Flask
+*   **Database:** SQLAlchemy (ORM), SQLite (for development)
+*   **Authentication:** Flask-JWT-Extended
+*   **Security:** Flask-Bcrypt (Password Hashing)
+*   **Frontend:** HTML, CSS (Thematic "Peaky Blinders" styling), Jinja2 (Template Engine)
+*   **API Testing:** `curl`, Postman
 
-This project aims to build a robust and efficient expense management system. It automates the process of submitting, tracking, and approving employee expenses, streamlining the reimbursement workflow for companies. The backend API provides a secure and scalable foundation for managing user accounts, expense submissions, and multi-step approval workflows, including currency conversion.
-
-*Note: This project was developed with the assistance of AI tools to accelerate learning and development during the hackathon. The goal is to demonstrate logical thinking, technical skills, and a commitment to clean, well-structured code while learning independently.*
-
----
-
-## ✨ Features
-
-### Current State (Backend API) 🏗️:
-- **🔐 Authentication & User Management:**
-  - Initial company and admin user signup (first user only).
-  - User login with JWT tokens.
-  - Employee, Manager, and Admin role-based permissions (enforced via API routes).
-- **💸 Expense Management:**
-  - Employee can submit new expenses (amount, currency, category, description, date).
-  - Employee can view their own submitted expenses.
-  - Manager can view expenses pending their approval.
-  - Manager can approve or reject expenses.
-  - **💱 Currency Conversion:** Submitted expenses are converted to the company's base currency using an external API.
-  - **🔄 Basic Approval Workflow:** Expenses are assigned to the employee's direct manager (if marked as an approver) or an admin upon submission. Manager approval/rejection updates the expense status and creates an approval record.
-- **💾 Data Management:**
-  - SQLite database for local storage and prototyping.
-  - SQLAlchemy ORM for database interactions.
-
-### Planned Features (Frontend & Advanced API) 🚀:
-- **🎨 Frontend Interface (Peaky Blinders Vibe):**
-  - Login/Signup pages.
-  - Employee dashboard (submit/view expenses).
-  - Manager dashboard (view team expenses, approve/reject pending items).
-  - Admin dashboard (manage users, define approval rules).
-- **⚙️ Advanced Approval Rules:**
-  - Configurable multi-step approval sequences (percentage-based, specific approver, hybrid).
-- **📄 Receipt Processing (Optional - Not Core):**
-  - *OCR is mentioned as an additional feature in the problem statement but is not implemented in this core API version.*
-- **🔔 Notifications:**
-  - Alerts for pending approvals, status changes.
-
----
-
-## 🛠️ Tech Stack
-
-- **Backend:** 🐍 Python, 🌐 Flask
-- **Database:** 🗄️ SQLite (for local development), 🐘 SQLAlchemy (ORM)
-- **Authentication:** 🔐 JWT (JSON Web Tokens)
-- **Password Hashing:** 🔐 Bcrypt
-- **API Communication:** 📡 Requests
-- **Frontend (Planned):** 💻 HTML, 🎨 CSS, 🧠 JavaScript (Flask templates or potentially a separate framework)
-
----
-
-## ⚡ Setup Instructions
-
-1.  **Clone the repository:**
+## Setup Instructions
+1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/shn-sudo/Odoo-x-Amalthea-IIT-GN-Hackathon-2025.git
     cd Odoo-x-Amalthea-IIT-GN-Hackathon-2025
     ```
 
-2.  **Create and activate a virtual environment (recommended):**
+2.  **Create and Activate Virtual Environment:**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    # On Windows:
+    # venv\Scripts\activate
+    # On macOS/Linux:
+    source venv/bin/activate
     ```
 
-3.  **Install dependencies:**
+3.  **Install Dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Run the application:**
+4.  **Run the Application:**
     ```bash
     python app.py
     ```
-    The application should start on `http://127.0.0.1:5000/`.
+    The API should be running on `http://127.0.0.1:5000/`.
 
----
+## Database Schema
+*   **`Company`:**
+    *   `id` (Primary Key)
+    *   `name` (Unique)
+    *   `base_currency_code`
+    *   `created_at`
+*   **`User`:**
+    *   `id` (Primary Key)
+    *   `username` (Unique)
+    *   `email` (Unique)
+    *   `password_hash`
+    *   `role` (employee, manager, admin)
+    *   `company_id` (Foreign Key)
+    *   `manager_id` (Self-referencing Foreign Key)
+    *   `is_manager_approver`
+    *   `created_at`
+*   **`Expense`:**
+    *   `id` (Primary Key)
+    *   `amount`
+    *   `original_currency_code`
+    *   `converted_amount`
+    *   `category`
+    *   `description`
+    *   `date`
+    *   `receipt_image_path`
+    *   `status` (pending, approved, rejected)
+    *   `submitted_by_id` (Foreign Key)
+    *   `submitted_at`
+    *   `current_approver_id` (Foreign Key)
+*   **`Approval`:**
+    *   `id` (Primary Key)
+    *   `expense_id` (Foreign Key)
+    *   `approver_id` (Foreign Key)
+    *   `status` (pending, approved, rejected)
+    *   `comment`
+    *   `approved_at`
+*   **`ApprovalRule`:**
+    *   `id` (Primary Key)
+    *   `name`
+    *   `company_id` (Foreign Key)
+    *   `percentage_required`
+    *   `specific_approver_required_id` (Foreign Key)
+    *   `is_hybrid_rule`
+    *   `rule_type` (percentage, specific, hybrid)
+    *   `sequence_order`
 
-## 🔌 API Endpoints
+## API Endpoints
 
-### Authentication 🔐
-- `POST /api/auth/signup`: Initial admin signup and company creation.
-- `POST /api/auth/login`: User login.
-- `GET /api/protected`: Example protected route (requires valid JWT).
+### Authentication
+*   `POST /api/auth/signup`
+    *   **Purpose:** Register a new user.
+    *   **Request Body:** `{"username": "...", "email": "...", "password": "...", "role": "employee|manager|admin", "company_id": <int>, "manager_id": <int> (optional)}`
+    *   **Response:** `{"msg": "User registered successfully"}` or error message.
 
-### Expenses 💸
-- `GET /api/expenses/my`: Get expenses submitted by the logged-in user.
-- `POST /api/expenses/submit`: Submit a new expense (requires valid JWT).
-- `GET /api/expenses/pending`: Get expenses pending approval for the logged-in manager (requires valid JWT).
-- `POST /api/expenses/<int:expense_id>/approve`: Approve an expense (requires valid JWT, manager role, and correct `current_approver_id`).
-- `POST /api/expenses/<int:expense_id>/reject`: Reject an expense (requires valid JWT, manager role, and correct `current_approver_id`).
+*   `POST /api/auth/login`
+    *   **Purpose:** Authenticate a user and return a JWT access token.
+    *   **Request Body:** `{"username": "...", "password": "..."}` (or `{"email": "...", "password": "..."}`)
+    *   **Response:** `{"access_token": "<token>"}` or error message.
 
----
+### Expenses
+*   `POST /api/expenses/submit`
+    *   **Purpose:** Submit a new expense claim.
+    *   **Headers:** `Authorization: Bearer <access_token>`
+    *   **Request Body:** `{"amount": <float>, "original_currency_code": "USD|EUR|GBP|...", "category": "...", "description": "...", "date": "YYYY-MM-DD"}`
+    *   **Response:** `{"msg": "Expense submitted successfully", "expense_id": <int>}` or error message.
 
-## 🗄️ Database Schema
+*   `GET /api/expenses/my`
+    *   **Purpose:** Retrieve expenses submitted by the authenticated user.
+    *   **Headers:** `Authorization: Bearer <access_token>`
+    *   **Response:** `{"expenses": [{...}, {...}]}`
 
-*(Based on SQLAlchemy models in `app.py`)*
+*   `GET /api/expenses/pending`
+    *   **Purpose:** Retrieve expenses pending approval for the authenticated user (if they are a manager/approver).
+    *   **Headers:** `Authorization: Bearer <access_token>`
+    *   **Response:** `{"pending_expenses": [{...}, {...}]}`
 
-- **`Company`** 🏢
-  - `id` (Primary Key)
-  - `name`
-  - `base_currency_code`
-  - `created_at`
-- **`User`** 👤
-  - `id` (Primary Key)
-  - `username` (Unique)
-  - `email` (Unique)
-  - `password_hash`
-  - `role` (employee, manager, admin)
-  - `company_id` (Foreign Key)
-  - `manager_id` (Self-referencing Foreign Key)
-  - `is_manager_approver`
-  - `created_at`
-- **`Expense`** 💰
-  - `id` (Primary Key)
-  - `amount`
-  - `original_currency_code`
-  - `converted_amount`
-  - `category`
-  - `description`
-  - `date`
-  - `receipt_image_path`
-  - `status` (pending, approved, rejected)
-  - `submitted_by_id` (Foreign Key)
-  - `submitted_at`
-  - `current_approver_id` (Foreign Key)
-- **`Approval`** ✅
-  - `id` (Primary Key)
-  - `expense_id` (Foreign Key)
-  - `approver_id` (Foreign Key)
-  - `status` (pending, approved, rejected)
-  - `comment`
-  - `approved_at`
-- **`ApprovalRule`** 📋
-  - `id` (Primary Key)
-  - `name`
-  - `company_id` (Foreign Key)
-  - `percentage_required`
-  - `specific_approver_required_id` (Foreign Key)
-  - `is_hybrid_rule`
-  - `rule_type` (percentage, specific, hybrid)
-  - `sequence_order`
+*   `POST /api/expenses/<int:expense_id>/approve`
+    *   **Purpose:** Approve a pending expense.
+    *   **Headers:** `Authorization: Bearer <access_token>`
+    *   **Request Body:** `{"comment": "..."} (optional)`
+    *   **Response:** `{"msg": "Expense approved successfully"}` or error message.
 
----
+*   `POST /api/expenses/<int:expense_id>/reject`
+    *   **Purpose:** Reject a pending expense.
+    *   **Headers:** `Authorization: Bearer <access_token>`
+    *   **Request Body:** `{"comment": "..."} (optional)`
+    *   **Response:** `{"msg": "Expense rejected successfully"}` or error message.
 
-## 🚀 Development Approach
+## API Interaction Examples (using `curl`)
 
-1.  **Start Small, Think Big** 🧠: Began with core authentication and expense submission/retrieval.
-2.  **Modular Architecture** 🧱: Separated concerns within `app.py` (Models, Utilities, Routes).
-3.  **Test as You Go** 🔬: Used tools like Postman/curl to verify API endpoints.
-4.  **Document Everything** 📝: Maintaining this `README.md` and code comments.
+Here are screenshots demonstrating successful calls to the API endpoints using `curl`:
 
----
+### Starting the Application
+![Start App](images/curl_start_app.png) <!-- This image might not exist yet; you can take one showing 'Running on http://127.0.0.1:5000/' -->
 
-## 🔜 Next Steps
+### User Signup
+![Curl Signup](images/curl_signup.png)
 
+### User Login (Obtaining JWT Token)
+![Curl Login](images/curl_login.png)
+
+### Submitting an Expense
+![Curl Submit Expense](images/curl_submit_expense.png)
+
+### Viewing Own Expenses
+![Curl View My Expenses](images/curl_view_my_expenses.png)
+
+### Approving an Expense
+![Curl Approve Expense](images/curl_approve_expense.png)
+
+## Development Approach
+1.  **Start Small, Think Big:** Began with core backend API authentication and expense submission.
+2.  **Modular Architecture:** Separated concerns (Models, Utilities, Routes) within `app.py`.
+3.  **Test as You Go:** Used `curl` extensively to verify API endpoints.
+4.  **Document Everything:** Maintaining this `README.md` and code comments.
+5.  **Integrate Frontend:** Added Flask routes to render HTML templates and implemented basic session management for the frontend.
+
+## Current Status (What Works & What Doesn't)
+
+*   **✅ Backend API:** Core functionality (signup, login, expense submission, viewing, approval/rejection) is implemented and tested via `curl`. All endpoints listed above work.
+*   **✅ Database Models:** SQLAlchemy models for User, Expense, Approval, ApprovalRule, Company are defined and functional.
+*   **✅ Authentication:** JWT-based authentication is working.
+*   **✅ Basic Frontend Templates:** HTML pages (`login.html`, `signup.html`, `admin_dashboard.html`, `employee_dashboard.html`, `manager_dashboard.html`) are created in the `templates/` folder with thematic styling.
+*   **❌ Full Frontend Integration:** While the frontend pages exist, the JavaScript interaction between these pages and the backend API (via `fetch` or similar) is not fully implemented or tested. The primary demonstration of functionality is via `curl` commands.
+*   **❌ Session Handling for Direct Route Access:** Navigating directly to `/employee`, `/manager`, or `/admin` routes might not work correctly if the Flask `session` is not properly set after API calls. This needs debugging.
+*   **❌ Admin Management UI:** Frontend pages for admin user/role management and rule management are planned but not fully implemented.
+*   **❌ Advanced Approval Rules:** The backend logic for complex, rule-based multi-step approvals is partially implemented but might require further refinement.
+*   **❌ Receipt Upload:** File upload for receipts is not fully implemented in the API endpoint or frontend.
+*   **❌ OCR:** Not implemented as a core feature.
+
+## Next Steps
 1.  Complete backend API features (e.g., admin user/role management, admin rule management).
-2.  Develop the frontend interface with the "Peaky Blinders vibe".
+2.  Develop the frontend interface fully, ensuring seamless interaction with the backend API.
 3.  Implement more complex approval rule logic.
 4.  Add comprehensive error handling and logging.
 5.  Finalize documentation.
 
----
-
-*Built with ❤️ during the Odoo x Amalthea, IIT GN Hackathon 2025.*
+## Built With
+*Made with ❤️ during the Odoo x Amalthea, IIT GN Hackathon 2025.*
