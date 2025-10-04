@@ -40,8 +40,8 @@ This project is a backend API for handling company expense reimbursements, built
 
 ## Setup
 
-1.  Clone the repo: `git clone <YOUR_REPOSITORY_URL>`
-2.  Navigate to the project directory: `cd <YOUR_REPOSITORY_NAME>`
+1.  Clone the repo: `git clone https://github.com/shn-sudo/Odoo-x-Amalthea-IIT-GN-Hackathon-2025.git`
+2.  Navigate to the project directory: `cd Odoo-x-Amalthea-IIT-GN-Hackathon-2025`
 3.  Create a virtual environment: `python -m venv venv`
 4.  Activate the virtual environment:
     *   On Windows: `venv\Scripts\activate`
