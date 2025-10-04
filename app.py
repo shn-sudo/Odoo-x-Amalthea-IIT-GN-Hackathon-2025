@@ -237,7 +237,35 @@ class ApprovalRule(db.Model):
 
 # --- API Routes (Endpoints) ---
 
-# ... (Your existing signup and login routes go here) ...
+# Route for employee to view their own submitted expenses
+@app.route('/api/expenses/my', methods=['GET'])
+@jwt_required() # Requires a valid JWT token
+def view_my_expenses():
+    # Get the user ID from the JWT token
+    current_user_id = int(get_jwt_identity()) # Convert string identity back to int
+
+    # Query the database for expenses submitted by the current user
+    # Order by submission date, newest first
+    user_expenses = Expense.query.filter_by(submitted_by_id=current_user_id).order_by(Expense.submitted_at.desc()).all()
+
+    # Prepare the response data
+    expenses_list = []
+    for expense in user_expenses:
+        expenses_list.append({
+            'id': expense.id,
+            'amount': expense.amount,
+            'original_currency_code': expense.original_currency_code,
+            'category': expense.category,
+            'description': expense.description,
+            'date': expense.date.isoformat(), # Convert date object to string
+            'status': expense.status,
+            'submitted_at': expense.submitted_at.isoformat() # Convert datetime object to string
+        })
+
+    return jsonify({
+        'message': 'Expenses retrieved successfully',
+        'expenses': expenses_list
+    }), 200
 
 # Route for employee to submit an expense
 @app.route('/api/expenses/submit', methods=['POST'])
