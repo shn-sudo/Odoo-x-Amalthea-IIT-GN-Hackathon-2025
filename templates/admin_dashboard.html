@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Peaky Blinders Expense{% endblock %}
+
+{% block content %}
+<h2>Company Users</h2>
+{% if users %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Manager</th>
+                <th>Is Approver?</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role|title }}</td>
+                <td>{{ user.manager.username if user.manager else 'None' }}</td>
+                <td>{{ 'Yes' if user.is_manager_approver else 'No' }}</td>
+                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No users found.</p>
+{% endif %}
+
+<h2>All Company Expenses</h2>
+{% if expenses %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Amount ({{ session.get('company_currency_code', 'N/A') }})</th>
+                <th>Original Currency</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+                <th>Current Approver</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.id }}</td>
+                <td>{{ expense.submitted_by.username }}</td>
+                <td>{{ "%.2f"|format(expense.converted_amount or expense.amount) }}</td>
+                <td>{{ expense.original_currency_code }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description }}</td>
+                <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                <td style="color:
+                    {% if expense.status == 'approved' %}#4CAF50; /* Green */
+                    {% elif expense.status == 'rejected' %}#F44336; /* Red */
+                    {% else %}#FFC107; /* Amber */ %}
+                ">{{ expense.status|title }}</td>
+                <td>{{ expense.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ expense.current_approver.username if expense.current_approver else 'None' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No expenses found.</p>
+{% endif %}
+
+<!-- Optional: Add forms for admin to manage users/rules here later -->
+
+{% endblock %}
